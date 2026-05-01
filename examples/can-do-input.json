@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/alexlqi/tmcp/schemas/can-do-input.json",
+  "title": "TMCP can_do input",
+  "description": "Input contract for the can_do tool. Accepts a structured intent query and returns a CapabilityReport (see capability-report.json). can_do is the single generic tool in the TMCP triad — it takes semantic intent, not a capability-specific name. It is the plan-before-act primitive.",
+  "type": "object",
+  "required": ["intent"],
+  "properties": {
+    "intent": {
+      "type": "object",
+      "required": ["semantic_tags"],
+      "description": "Structured description of the desired action.",
+      "properties": {
+        "semantic_tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "One or more tags describing the capability category being sought. These are matched against the server's capability declarations. Examples: ['inventory', 'transfer'], ['temperature', 'hvac', 'zone_3'], ['claim', 'submit', 'healthcare']."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["read", "create", "update", "delete", "toggle", "increase", "decrease", "set"],
+          "description": "The intended action direction. Optional but improves candidate ranking precision. 'read' should not appear here — use read_* tools directly. Use 'set' for absolute values, 'increase'/'decrease' for relative adjustments."
+        },
+        "target": {
+          "type": "string",
+          "description": "The property, resource, or entity being targeted. Examples: 'stock_location', 'fan_speed', 'claim_status', 'temperature_setpoint'."
+        },
+        "value": {
+          "description": "Optional target value. When provided, candidates will include constraint information to indicate whether the value is within bounds."
+        },
+        "location": {
+          "type": "string",
+          "description": "Logical scope for the query. Used to filter candidates by zone, region, resource group, or any other location identifier declared in capability metadata. Examples: 'zone_3', 'warehouse_A', 'us-east-1'."
+        }
+      },
+      "additionalProperties": false
+    },
+    "scope": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional list of capability names or source identifiers to constrain the search. When provided, only listed capabilities are evaluated. Useful when the orchestrator already knows the target tool but needs a current permission and validity check."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "intent": {
+        "semantic_tags": ["inventory", "transfer", "warehouse"],
+        "action": "update",
+        "target": "stock_location",
+        "value": 50
+      }
+    },
+    {
+      "intent": {
+        "semantic_tags": ["temperature", "hvac"],
+        "action": "decrease",
+        "target": "temperature_setpoint",
+        "location": "zone_3"
+      }
+    },
+    {
+      "intent": {
+        "semantic_tags": ["claim", "healthcare"],
+        "action": "create",
+        "target": "claim"
+      },
+      "scope": ["do_submit_claim"]
+    },
+    {
+      "intent": {
+        "semantic_tags": ["fan", "ventilation"],
+        "action": "set",
+        "target": "fan_speed",
+        "value": 75,
+        "location": "north_wing"
+      }
+    }
+  ]
+}

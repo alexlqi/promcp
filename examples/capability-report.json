@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/alexlqi/tmcp/schemas/capability-report.json",
+  "title": "TMCP CapabilityReport",
+  "description": "Response contract for the can_do tool. Returns a structured report of which capabilities are feasible (candidates), which matched semantically but cannot execute (blocked), surrounding context, and query metadata. Orchestrators must check valid_until on each candidate before executing a do_* derived from this report.",
+  "type": "object",
+  "required": ["query_id", "feasible", "candidates", "blocked"],
+  "properties": {
+    "query_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUIDv4 identifying this specific can_do query. Used for deduplication in distributed deployments and for correlating the plan step with subsequent do_* calls in audit logs."
+    },
+    "feasible": {
+      "type": "boolean",
+      "description": "true if and only if at least one candidate has permission: 'allowed'. false means no immediately executable path exists — inspect blocked[] to determine recoverability."
+    },
+    "candidates": {
+      "type": "array",
+      "description": "Tools that semantically match the intent and are currently executable. Ordered by confidence descending. May be empty.",
+      "items": {
+        "type": "object",
+        "required": ["capability", "source", "confidence", "permission", "valid_until"],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "description": "Full tool name of the matching capability. Example: 'do_transfer_stock', 'do_set_fan_speed'."
+          },
+          "source": {
+            "type": "string",
+            "description": "Identifier of the server or node exposing this capability. Example: 'inventory-server', 'node_hvac_zone3_007'."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Semantic match strength between the intent query and this capability. 1.0 = exact match. Below 0.7: orchestrator SHOULD escalate to human review or request clarification before executing do_*."
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "allowed",
+              "requires_human_approval",
+              "policy_denied",
+              "rate_limited",
+              "cooldown_active",
+              "out_of_range",
+              "permission_insufficient",
+              "source_unreachable",
+              "partition_no_quorum"
+            ],
+            "description": "Current execution permission for this candidate. Only 'allowed' permits autonomous do_* execution. 'requires_human_approval' permits execution only after explicit human confirmation. All other values belong in blocked[]."
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 datetime after which this candidate's permission snapshot is no longer valid. Orchestrator MUST re-call can_do if now() >= valid_until before executing do_*. A missing valid_until MUST be treated as zero validity window."
+          },
+          "current_state": {
+            "type": "object",
+            "description": "Current observed value of the capability's target, if available. Saves a read_* round-trip for simple decision logic.",
+            "properties": {
+              "value": { "description": "Current value." },
+              "unit": { "type": ["string", "null"] },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "description": "Value bounds for this capability. Use to validate the intended value before executing do_*.",
+            "properties": {
+              "min": { "type": ["number", "null"] },
+              "max": { "type": ["number", "null"] },
+              "unit": { "type": ["string", "null"] },
+              "enum_values": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Valid discrete values for enum-typed capabilities."
+              }
+            }
+          },
+          "side_effects": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Declared side effects this capability will produce upon execution. Exposed pre-execution so the orchestrator can reason about downstream impact before committing."
+          },
+          "estimated_latency_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Estimated round-trip latency in milliseconds for the do_* call. Optional. Used by orchestrators optimizing parallel execution plans."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "blocked": {
+      "type": "array",
+      "description": "Tools that matched the intent semantically but cannot execute in the current state. Always include these — they tell the orchestrator why options are unavailable and whether the situation is recoverable.",
+      "items": {
+        "type": "object",
+        "required": ["capability", "source", "permission", "reason"],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "description": "Full tool name of the blocked capability."
+          },
+          "source": {
+            "type": "string",
+            "description": "Identifier of the server or node exposing this capability."
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "requires_human_approval",
+              "policy_denied",
+              "rate_limited",
+              "cooldown_active",
+              "out_of_range",
+              "permission_insufficient",
+              "source_unreachable",
+              "partition_no_quorum"
+            ],
+            "description": "Reason category for the block. Used by the orchestrator to determine recoverability without parsing the reason string."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Human-readable explanation of why this capability is blocked. Example: 'Transfer limit of 10/hour exceeded', 'Device offline since 14:30 UTC', 'Cooldown active for 28 more seconds'."
+          },
+          "details": {
+            "type": ["string", "null"],
+            "description": "Optional machine-parseable additional detail. Examples: 'Window resets at 2026-04-30T17:00:00Z', 'last_seen: 4 minutes ago', 'required_role: supervisor'."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Surrounding state to inform agent decisions before executing do_*.",
+      "properties": {
+        "related_reads": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of read_* tool names the orchestrator MAY call for additional context. These are safe to fan out in parallel before the do_* step."
+        },
+        "current_observations": {
+          "type": "object",
+          "description": "Inline observations of related state, keyed by read_* tool name or semantic label. Provided opportunistically to reduce round-trips.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Diagnostics and observability for this can_do query.",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 datetime when the CapabilityReport was generated."
+        },
+        "total_latency_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total wall-clock time in milliseconds from query receipt to response."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "query_id": "a1b2c3d4-e5f6-4789-abcd-ef0123456789",
+      "feasible": true,
+      "candidates": [
+        {
+          "capability": "do_transfer_stock",
+          "source": "inventory-server",
+          "confidence": 0.95,
+          "permission": "allowed",
+          "valid_until": "2026-04-30T16:05:00Z",
+          "current_state": { "value": null, "unit": null, "timestamp": "2026-04-30T16:04:00Z" },
+          "constraints": { "min": 1, "max": 10000, "unit": "units" },
+          "side_effects": ["stock_level_change_source", "stock_level_change_destination", "audit_log_entry"],
+          "estimated_latency_ms": 80
+        }
+      ],
+      "blocked": [],
+      "context": {
+        "related_reads": ["read_stock_warehouse_a", "read_stock_warehouse_b"],
+        "current_observations": {}
+      },
+      "metadata": { "timestamp": "2026-04-30T16:04:00Z", "total_latency_ms": 45 }
+    },
+    {
+      "query_id": "b2c3d4e5-f6a7-4890-bcde-f01234567890",
+      "feasible": false,
+      "candidates": [],
+      "blocked": [
+        {
+          "capability": "do_transfer_stock",
+          "source": "inventory-server",
+          "permission": "rate_limited",
+          "reason": "Transfer limit of 10/hour exceeded",
+          "details": "Window resets at 2026-04-30T17:00:00Z"
+        }
+      ],
+      "context": { "related_reads": [], "current_observations": {} },
+      "metadata": { "timestamp": "2026-04-30T16:45:00Z", "total_latency_ms": 12 }
+    }
+  ]
+}

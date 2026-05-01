@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/alexlqi/tmcp/schemas/read-response.json",
+  "title": "TMCP read_* response",
+  "description": "Response contract for all read_* tools in a TMCP-compliant MCP server. Read tools are side-effect-free, parallelizable, and retryable. The quality field is required and governs whether the orchestrator may act on the value.",
+  "type": "object",
+  "required": ["value", "timestamp", "quality"],
+  "properties": {
+    "value": {
+      "description": "The observed value. May be any type. NULL when quality is 'error'."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime at which the value was observed."
+    },
+    "quality": {
+      "type": "string",
+      "enum": ["good", "stale", "degraded", "error"],
+      "description": "Reliability and freshness of the observed value. 'good': fresh from reliable source — safe to act on. 'stale': beyond cache TTL, no fresher data available — act with caution. 'degraded': source operational but outside normal parameters — escalate to human review. 'error': read failed, value is absent or unreliable — MUST NOT act."
+    },
+    "unit": {
+      "type": ["string", "null"],
+      "description": "Unit of measurement for numeric values. Examples: celsius, percent, pascal, lux, units, USD. NULL for non-numeric or unitless values."
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "value": 24.7,
+      "unit": "celsius",
+      "timestamp": "2026-04-30T16:00:00Z",
+      "quality": "good"
+    },
+    {
+      "value": null,
+      "unit": null,
+      "timestamp": "2026-04-30T16:00:00Z",
+      "quality": "error"
+    },
+    {
+      "value": 200,
+      "unit": "units",
+      "timestamp": "2026-04-30T16:00:00Z",
+      "quality": "stale"
+    }
+  ]
+}

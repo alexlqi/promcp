@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/alexlqi/tmcp/schemas/do-response.json",
+  "title": "TMCP do_* response",
+  "description": "Response contract for all do_* tools in a TMCP-compliant MCP server. Mutation tools must declare idempotency, compensation, and side effects. The idempotency_key enables safe retry. The compensable field gates rollback capability.",
+  "type": "object",
+  "required": ["status", "idempotency_key", "compensable", "timestamp"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["success", "partial", "failed"],
+      "description": "Outcome of the mutation. 'success': fully applied, all side_effects committed. 'partial': partially applied, side_effects list reflects what was committed. 'failed': not applied, no side effects committed."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique key identifying this specific execution. The server must return the same status and applied_value for duplicate calls with the same key within the deduplication window (recommended minimum: 24 hours). Clients must reuse this key on retry."
+    },
+    "applied_value": {
+      "description": "The value that was actually applied by this mutation. Required when the operation sets a measurable value. NULL for non-value mutations (deletes, triggers). Must reflect the actual applied value, not the requested value — these differ when clamping or rounding occurs."
+    },
+    "previous_value": {
+      "description": "The value that existed before this mutation. Required when applied_value is present. Enables the orchestrator to construct the compensation call without a prior read_*."
+    },
+    "side_effects": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Declared list of side effects produced by this mutation. Each entry is a human-readable string identifying an observable external change. Examples: 'stock_level_change', 'audit_log_entry', 'email_notification_sent', 'zone_3_climate_change'."
+    },
+    "compensable": {
+      "type": "boolean",
+      "description": "Whether this mutation can be reversed by a subsequent tool call. When true, compensation_hint is required. When false and status is 'failed' after partial side effects in a workflow, the orchestrator MUST escalate to human review."
+    },
+    "compensation_hint": {
+      "type": ["string", "null"],
+      "description": "Required when compensable is true. Machine-readable description of the tool call needed to reverse this mutation. Recommended format: '{tool_name} {param}={value}'. Example: 'do_transfer_stock sku=SKU-001 quantity=50 source_warehouse=B destination_warehouse=A'."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime at which the mutation was applied (or attempted)."
+    }
+  },
+  "if": {
+    "properties": { "compensable": { "const": true } },
+    "required": ["compensable"]
+  },
+  "then": {
+    "required": ["compensation_hint"],
+    "properties": {
+      "compensation_hint": { "type": "string", "minLength": 1 }
+    }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "status": "success",
+      "idempotency_key": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "applied_value": 50,
+      "previous_value": 0,
+      "side_effects": ["stock_level_change_source", "stock_level_change_destination", "audit_log_entry"],
+      "compensable": true,
+      "compensation_hint": "do_transfer_stock sku=SKU-001 quantity=50 source_warehouse=B destination_warehouse=A",
+      "timestamp": "2026-04-30T16:04:02Z"
+    },
+    {
+      "status": "failed",
+      "idempotency_key": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
+      "applied_value": null,
+      "previous_value": null,
+      "side_effects": [],
+      "compensable": false,
+      "compensation_hint": null,
+      "timestamp": "2026-04-30T16:04:02Z"
+    },
+    {
+      "status": "partial",
+      "idempotency_key": "b2c3d4e5-f6a7-8901-bcde-f01234567890",
+      "applied_value": 70,
+      "previous_value": 30,
+      "side_effects": ["zone_3_climate_change"],
+      "compensable": true,
+      "compensation_hint": "do_set_fan_speed value=30",
+      "timestamp": "2026-04-30T16:04:02Z"
+    }
+  ]
+}
