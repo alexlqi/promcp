@@ -38,8 +38,13 @@ class _FakeFastMCP:
 @pytest.fixture()
 def server(monkeypatch):
     """ProMCPServer respaldado por el stub, sin tocar el FastMCP real."""
-    mod = importlib.import_module(MODULE)
-    monkeypatch.setattr(mod, "_FastMCP", _FakeFastMCP)
+    import types
+
+    fake_fastmcp = types.ModuleType("fastmcp")
+    fake_fastmcp.FastMCP = _FakeFastMCP
+    monkeypatch.setitem(sys.modules, "fastmcp", fake_fastmcp)
+
+    mod = importlib.reload(importlib.import_module(MODULE))
     return mod.ProMCPServer("test-server")
 
 
