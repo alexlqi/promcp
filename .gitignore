@@ -1,5 +1,6 @@
 # Claude ignore file
 .claude
+.mcp.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
