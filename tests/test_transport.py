@@ -103,5 +103,9 @@ def test_missing_fastmcp_raises_actionable_importerror(monkeypatch):
         assert "promcp[transport]" in str(excinfo.value)
     finally:
         # Restore a clean, importable module for the rest of the suite.
-        monkeypatch.undo()
+        import types
+
+        fake_fastmcp = types.ModuleType("fastmcp")
+        fake_fastmcp.FastMCP = _FakeFastMCP
+        monkeypatch.setitem(sys.modules, "fastmcp", fake_fastmcp)
         importlib.reload(importlib.import_module(MODULE))
