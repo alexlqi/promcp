@@ -1,0 +1,20 @@
+ProMCP
+Copyright (c) 2026 Alejandro Andrade (@alexlqi)
+
+Este producto incorpora software de terceros:
+
+--------------------------------------------------------------------------------
+FastMCP
+Copyright (c) Prefect Technologies, Inc. / Jeremiah Lowin
+Licencia: Apache License 2.0
+Repositorio: https://github.com/PrefectHQ/fastmcp
+Versión incorporada / pinneada: fastmcp>=3.4,<4  (pin auditado: 3.4.4)
+
+FastMCP se usa como dependencia de transporte, integrada tras la superficie
+ProMCP (promcp.transport). El texto completo de la licencia Apache-2.0 se
+encuentra en THIRD_PARTY_LICENSES/fastmcp.txt.
+
+ProMCP no está afiliado ni respaldado por Prefect Technologies ni por los
+autores de FastMCP. "FastMCP" y "Prefect" son marcas de sus respectivos
+titulares y no se usan para insinuar respaldo alguno.
+--------------------------------------------------------------------------------

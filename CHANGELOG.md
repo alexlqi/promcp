@@ -16,6 +16,29 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
+## [0.3.0.dev0] — unreleased (dev)
+
+### Tooling
+
+- **FastMCP transport adapter (ADR-001):** FastMCP incorporated as an optional,
+  version-pinned transport dependency isolated behind `promcp.transport`
+  (`ProMCPServer`, `TriadicSurface`). The triadic convention survives the
+  transport crossing via canonical `can_do__` / `read__` / `do__` tool-name
+  prefixes. FastMCP is imported in exactly one file (`fastmcp_adapter.py`); the
+  rest of the codebase imports `promcp.transport`. Install via the extra:
+  `pip install 'promcp[transport]'`.
+- **Dependency policy:** `transport = ["fastmcp>=3.4,<4"]` — floor 3.4 pulls the
+  SSRF/OAuth fixes and the Starlette floor for CVE-2026-48710; ceiling `<4`
+  avoids an unintended major. The exact audited pin lives in the lockfile, not
+  here. NOT vendored.
+- **Apache-2.0 compliance:** added `NOTICE` and
+  `THIRD_PARTY_LICENSES/fastmcp.txt` (full license text); wired into the
+  distribution via `license-files`.
+- **Dependency floors refreshed:** `typing_extensions>=4.12`, `mcp>=1.9`,
+  `pyyaml>=6.0.1`, `pytest>=8.2` (dev).
+
+---
+
 ## [0.2.0] — 2026-04-30
 
 ### Specification

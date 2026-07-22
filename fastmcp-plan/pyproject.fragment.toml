@@ -1,0 +1,21 @@
+# Fragmento para el pyproject.toml de ProMCP.
+# "Incorporar" FastMCP = declararlo dependencia de primera clase, pinneado,
+# y exponerlo pre-cableado tras promcp.transport. NO es un fork vendorizado.
+
+[project]
+# ...
+dependencies = [
+    # Piso en la serie 3.4 (trae los fixes de SSRF/OAuth y el floor de Starlette
+    # por CVE-2026-48710); techo antes de 4.0 para no comerte un major sin querer.
+    "fastmcp>=3.4,<4",
+]
+
+# Si quieres que ProMCP funcione sin transporte (p. ej. para tests de dominio
+# puro) y traer FastMCP solo bajo demanda, muévelo a un extra:
+[project.optional-dependencies]
+transport = ["fastmcp>=3.4,<4"]
+
+# IMPORTANTE: el rango de arriba es la política. El PIN EXACTO auditado vive en
+# tu lockfile (uv.lock / requirements.lock), no aquí. Regenera y re-audita el
+# lock de forma deliberada; así recibes parches de seguridad cuando TÚ decides,
+# no nunca (que es lo que pasaría si vendorizaras @latest).
