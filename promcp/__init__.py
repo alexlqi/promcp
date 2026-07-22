@@ -53,7 +53,7 @@ Quick start
 from promcp.decorators import can_do_tool, do_tool, read_tool
 from promcp.registry import Registry, default_registry
 
-__version__  = "0.2.0"
+__version__  = "0.3.0.dev1"
 __author__   = "@alexlqi"
 __spec_url__ = "https://github.com/alexlqi/tmcp"
 

@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "promcp"
-version     = "0.2.0"
+version     = "0.3.0.dev1"
 description = "Proactive MCP — decorators and linter for proMCP-compliant MCP servers"
 readme      = "README.md"
 license     = "Apache-2.0"
+license-files = ["THIRD_PARTY_LICENSES/*", "NOTICE"]
 authors     = [
     { name = "@alexlqi", email = "alexlqi@users.noreply.github.com" },
 ]
@@ -28,15 +29,20 @@ classifiers = [
 requires-python = ">=3.10"
 
 dependencies = [
-    "typing_extensions>=4.0",
+    "typing_extensions>=4.12",
 ]
 
 [project.optional-dependencies]
-yaml = ["pyyaml>=6.0"]
-mcp  = ["mcp>=1.0"]
+yaml = ["pyyaml>=6.0.1"]
+mcp  = ["mcp>=1.9"]
+# Transporte MCP de primera clase, aislado tras `promcp.transport`. Ver ADR-001.
+# Piso en 3.4 (fixes SSRF/OAuth + floor de Starlette por CVE-2026-48710); techo
+# antes de 4.0 para no comerse un major sin querer. El PIN EXACTO auditado vive
+# en el lockfile, no aqui.
+transport = ["fastmcp>=3.4,<4"]
 dev  = [
-    "pytest>=8.0",
-    "pyyaml>=6.0",
+    "pytest>=8.2",
+    "pyyaml>=6.0.1",
 ]
 
 [project.urls]
