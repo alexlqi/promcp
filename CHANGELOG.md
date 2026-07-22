@@ -16,16 +16,32 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
-## [0.3.0.dev0] — unreleased (dev)
+## [0.3.0.dev1] — unreleased (dev)
+
+### Fixed (addresses PR #2 review)
+
+- **Transport naming now compliant with ProMCP's own linter:** the adapter
+  emitted `can_do__` / `read__` / `do__` (double underscore, and a per-capability
+  `can_do__x`), which `promcp/linter/checker.py` rejects. Now emits `read_<cap>`
+  / `do_<cap>` and a singleton `can_do`. `register_can_do()` no longer takes a
+  capability argument.
+- **Added `tests/test_transport.py`:** hermetic tests (FastMCP stubbed) covering
+  the emitted names, `check_naming` compliance, the `can_do` singleton, and the
+  actionable `ImportError` when `fastmcp` is absent.
+- Resolved the stale `>>> ACCIÓN REQUERIDA <<<` note in
+  `fastmcp-plan/fastmcp.txt`; corrected the "imported in exactly one file"
+  wording (now "one runtime file").
 
 ### Tooling
 
 - **FastMCP transport adapter (ADR-001):** FastMCP incorporated as an optional,
   version-pinned transport dependency isolated behind `promcp.transport`
   (`ProMCPServer`, `TriadicSurface`). The triadic convention survives the
-  transport crossing via canonical `can_do__` / `read__` / `do__` tool-name
-  prefixes. FastMCP is imported in exactly one file (`fastmcp_adapter.py`); the
-  rest of the codebase imports `promcp.transport`. Install via the extra:
+  transport crossing using the same names the ProMCP linter enforces:
+  `read_<cap>` / `do_<cap>` tools and a singleton `can_do` — so an exported
+  server passes ProMCP's own `check_naming`. FastMCP is imported in exactly one
+  runtime file (`promcp/transport/fastmcp_adapter.py`); the rest of the package
+  imports `promcp.transport`. Install via the extra:
   `pip install 'promcp[transport]'`.
 - **Dependency policy:** `transport = ["fastmcp>=3.4,<4"]` — floor 3.4 pulls the
   SSRF/OAuth fixes and the Starlette floor for CVE-2026-48710; ceiling `<4`

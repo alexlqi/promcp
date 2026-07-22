@@ -53,22 +53,29 @@ class TriadicSurface(Protocol):
 class ProMCPServer:
     """Servidor ProMCP.
 
-    Envuelve un `FastMCP` y expone la convención triádica. Registra las
-    capacidades como tools MCP con prefijos canónicos `can_do__` / `read__` /
-    `do__`, de modo que la semántica triádica sobreviva al cruce del transporte.
+    Envuelve un `FastMCP` y expone la convención triádica usando los MISMOS
+    nombres que exigen `promcp.decorators` y `promcp.linter.checker`: tools
+    `read_<capacidad>` / `do_<capacidad>` (un solo guion bajo) y un único tool
+    de feasibility llamado exactamente `can_do` (singleton). Así, un servidor
+    exportado por este adapter pasa el propio linter de ProMCP —la semántica
+    triádica sobrevive el cruce del transporte y sigue siendo compliant.
     """
 
-    CAN_DO_PREFIX = "can_do__"
-    READ_PREFIX = "read__"
-    DO_PREFIX = "do__"
+    # `can_do` es un singleton por servidor (no lleva sufijo de capacidad);
+    # `read_`/`do_` son prefijos con un solo guion bajo. Ver checker.VALID_PREFIXES
+    # y checker.EXACT_GENERIC.
+    CAN_DO_NAME = "can_do"
+    READ_PREFIX = "read_"
+    DO_PREFIX = "do_"
 
     def __init__(self, name: str, **fastmcp_kwargs: Any) -> None:
         # `_mcp` es el detalle de implementación; nadie fuera del adapter lo ve.
         self._mcp = _FastMCP(name, **fastmcp_kwargs)
 
     # -- Registro (composición, no herencia) ---------------------------------
-    def register_can_do(self, capability: str) -> Callable[[Callable], Callable]:
-        return self._mcp.tool(name=f"{self.CAN_DO_PREFIX}{capability}")
+    def register_can_do(self) -> Callable[[Callable], Callable]:
+        """Registra el tool de feasibility `can_do` (singleton, uno por servidor)."""
+        return self._mcp.tool(name=self.CAN_DO_NAME)
 
     def register_read(self, resource: str) -> Callable[[Callable], Callable]:
         return self._mcp.tool(name=f"{self.READ_PREFIX}{resource}")
