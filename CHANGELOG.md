@@ -16,7 +16,7 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
-## [0.3.0.dev1] — unreleased (dev)
+## [0.3.0] — 2026-07-22
 
 ### Fixed (addresses PR #2 review)
 
