@@ -1,0 +1,16 @@
+FastMCP — Apache License 2.0
+Copyright (c) Prefect Technologies, Inc. / Jeremiah Lowin
+Fuente: https://github.com/PrefectHQ/fastmcp/blob/main/LICENSE
+
+>>> ACCIÓN REQUERIDA <<<
+Pega aquí el texto ÍNTEGRO de la licencia Apache-2.0 tal como aparece en el
+LICENSE del commit/versión que pinneaste (fastmcp 3.4.4). No lo parafrasees ni
+lo recortes: la cláusula §4 de Apache-2.0 exige el texto completo y la
+conservación de este archivo si distribuyes ProMCP.
+
+Puedes obtenerlo con:
+    pip download fastmcp==3.4.4 --no-deps -d /tmp/fmcp
+    unzip -p /tmp/fmcp/fastmcp-3.4.4-*.whl '*/LICENSE'  # o revisa el sdist
+
+o desde el repo:
+    https://raw.githubusercontent.com/PrefectHQ/fastmcp/v3.4.4/LICENSE
