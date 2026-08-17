@@ -1,7 +1,7 @@
 ﻿# proMCP Specification
 
 **Proactive MCP Convention — Formal Specification**
-**Version: 0.2.0**
+**Version: 0.3.0**
 **Status: Working Draft**
 **Author: [@alexlqi](https://github.com/alexlqi) — EnthalpyDW / GoMethos**
 **License: CC-BY-SA 4.0**
@@ -793,7 +793,7 @@ A domain extension of proMCP MUST:
 
 1. Be a strict superset of proMCP response schemas — all REQUIRED proMCP fields MUST be present with identical semantics
 2. Not redefine any field defined by proMCP with different semantics or types
-3. Declare its proMCP base version in its own spec header: `promcp_base: "0.2.0"`
+3. Declare its proMCP base version in its own spec header: `promcp_base: "0.3.0"`
 4. Document every field it adds beyond the proMCP base
 
 A domain extension MAY:
@@ -1038,6 +1038,9 @@ Orchestrator behavior: surface to human operator with full candidate details and
 ---
 
 ## 18. Changelog
+
+### v0.3.0 (2026-07-22)
+- No spec-content changes; released alongside the FastMCP transport adapter (ADR-001) and transport naming fixes. See `CHANGELOG.md` for tooling details.
 
 ### v0.2.0 (2026-04-30)
 - Replaced `freshness` enum on `read_*` with `quality: good|stale|degraded|error` (derived from PhysMCP)
