@@ -7,6 +7,29 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
+## [0.5.0] — 2026-08-17
+
+### Tooling — BREAKING
+
+The `tmcp` -> `promcp` package rename (0.4.0 and earlier) never reached the
+rest of the leftover "TMCP" naming in code and docstrings. Completing it
+renames two pieces of public API:
+
+- **Renamed** `promcp.exceptions.TMCPError` → `ProMCPError`. Every exception
+  in `promcp.exceptions` (`ContractViolation`, `DecoratorMisuseError`,
+  `CanDoSingletonError`, `InvalidQualityError`, `InvalidStatusError`) now
+  subclasses `ProMCPError`. No compatibility alias — `except TMCPError` in
+  downstream code must become `except ProMCPError`.
+- **Renamed** the introspection attributes `@read_tool`/`@do_tool`/`@can_do_tool`
+  attach to decorated functions: `__tmcp_name__` → `__promcp_name__`,
+  `__tmcp_category__` → `__promcp_category__`.
+- **Fixed** remaining "TMCP" module docstrings, error message text, and
+  `github.com/alexlqi/tmcp` links across `promcp/*.py`, `promcp/adapters/*`,
+  `promcp/linter/checker.py`, and `examples/*.json` — all now say proMCP /
+  `github.com/alexlqi/promcp`.
+
+---
+
 ## [0.4.1] — 2026-08-17
 
 ### Tooling

@@ -1,7 +1,7 @@
 ﻿"""
-TMCP → Anthropic MCP SDK Adapter
----------------------------------
-Converts a TMCP Registry into an mcp.Server instance using the
+proMCP → Anthropic MCP SDK Adapter
+------------------------------------
+Converts a proMCP Registry into an mcp.Server instance using the
 official Anthropic MCP Python SDK.
 
 Install the SDK: pip install mcp
@@ -20,16 +20,16 @@ if TYPE_CHECKING:
     pass
 
 
-def to_mcp_server(registry: Registry, server_name: str = "tmcp-server"):
+def to_mcp_server(registry: Registry, server_name: str = "promcp-server"):
     """
-    Convert a TMCP Registry to an mcp.Server instance.
+    Convert a proMCP Registry to an mcp.Server instance.
 
     Requires: pip install mcp
 
     Parameters
     ----------
     registry    : Registry
-        The TMCP registry containing decorated tools.
+        The proMCP registry containing decorated tools.
     server_name : str
         Name for the MCP server instance.
 

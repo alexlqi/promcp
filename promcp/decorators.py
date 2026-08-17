@@ -1,6 +1,6 @@
 ﻿"""
-TMCP Decorators
----------------
+proMCP Decorators
+------------------
 @read_tool   — declares a side-effect-free observation tool
 @do_tool     — declares a mutation tool with idempotency and compensation
 @can_do_tool — declares the precondition/feasibility tool (singleton)
@@ -12,7 +12,7 @@ Each decorator:
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
 """
 
 from __future__ import annotations
@@ -132,7 +132,7 @@ def read_tool(
     registry: Registry      = default_registry,
 ):
     """
-    Declare a TMCP read_* tool.
+    Declare a proMCP read_* tool.
 
     The decorated function:
     - MUST be named read_<capability> (or provide name= override)
@@ -172,20 +172,20 @@ def read_tool(
 
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
-            from promcp.exceptions import TMCPError
+            from promcp.exceptions import ProMCPError
             try:
                 raw = fn(*args, **kwargs)
                 if not isinstance(raw, dict):
                     raw = {"value": raw}
                 return builder.build(raw)
-            except TMCPError:
+            except ProMCPError:
                 raise  # contract violations bubble up
             except Exception as exc:
                 return builder.build({}, exc=exc)
 
-        # Attach TMCP metadata to the wrapper for introspection
-        wrapper.__tmcp_name__     = tool_name
-        wrapper.__tmcp_category__ = "read"
+        # Attach proMCP metadata to the wrapper for introspection
+        wrapper.__promcp_name__     = tool_name
+        wrapper.__promcp_category__ = "read"
 
         registry.register(ToolEntry(
             name=tool_name,
@@ -215,7 +215,7 @@ def do_tool(
     registry:     Registry      = default_registry,
 ):
     """
-    Declare a TMCP do_* tool.
+    Declare a proMCP do_* tool.
 
     The decorated function:
     - MUST be named do_<capability> (or provide name= override)
@@ -278,7 +278,7 @@ def do_tool(
             raise DecoratorMisuseError(
                 tool_name,
                 "Function must declare 'idempotency_key: str' as a parameter. "
-                "TMCP requires every do_* to be idempotent by key.",
+                "proMCP requires every do_* to be idempotent by key.",
             )
 
         builder = DoResponseBuilder(
@@ -301,19 +301,19 @@ def do_tool(
 
             idempotency_key = call_kwargs.get("idempotency_key", "")
 
-            from promcp.exceptions import TMCPError
+            from promcp.exceptions import ProMCPError
             try:
                 raw = fn(*args, **kwargs)
                 if not isinstance(raw, dict):
                     raw = {}
                 return builder.build(raw, idempotency_key, call_kwargs)
-            except TMCPError:
+            except ProMCPError:
                 raise
             except Exception as exc:
                 return builder.build({}, idempotency_key, call_kwargs, exc=exc)
 
-        wrapper.__tmcp_name__     = tool_name
-        wrapper.__tmcp_category__ = "do"
+        wrapper.__promcp_name__     = tool_name
+        wrapper.__promcp_category__ = "do"
 
         registry.register(ToolEntry(
             name=tool_name,
@@ -341,7 +341,7 @@ def can_do_tool(
     registry: Registry = default_registry,
 ):
     """
-    Declare the TMCP can_do tool (singleton per registry).
+    Declare the proMCP can_do tool (singleton per registry).
 
     The decorated function:
     - MUST be named exactly 'can_do'
@@ -383,7 +383,7 @@ def can_do_tool(
             raise DecoratorMisuseError(
                 tool_name,
                 "The @can_do_tool decorated function must be named exactly 'can_do'. "
-                "There is exactly one can_do tool per TMCP server.",
+                "There is exactly one can_do tool per proMCP server.",
             )
 
         # Verify intent parameter exists
@@ -401,21 +401,21 @@ def can_do_tool(
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             t0 = time.monotonic()
-            from promcp.exceptions import TMCPError
+            from promcp.exceptions import ProMCPError
             try:
                 raw = fn(*args, **kwargs)
                 if not isinstance(raw, dict):
                     raw = {}
                 latency_ms = int((time.monotonic() - t0) * 1000)
                 return builder.build(raw, latency_ms=latency_ms)
-            except TMCPError:
+            except ProMCPError:
                 raise
             except Exception as exc:
                 latency_ms = int((time.monotonic() - t0) * 1000)
                 return builder.build({}, latency_ms=latency_ms, exc=exc)
 
-        wrapper.__tmcp_name__     = "can_do"
-        wrapper.__tmcp_category__ = "can_do"
+        wrapper.__promcp_name__     = "can_do"
+        wrapper.__promcp_category__ = "can_do"
 
         registry.register(ToolEntry(
             name="can_do",

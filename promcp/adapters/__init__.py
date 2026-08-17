@@ -1,1 +1,1 @@
-﻿# TMCP Adapters — raw, anthropic
+﻿# proMCP Adapters — raw, anthropic

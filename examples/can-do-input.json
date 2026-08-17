@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/alexlqi/tmcp/schemas/can-do-input.json",
-  "title": "TMCP can_do input",
-  "description": "Input contract for the can_do tool. Accepts a structured intent query and returns a CapabilityReport (see capability-report.json). can_do is the single generic tool in the TMCP triad — it takes semantic intent, not a capability-specific name. It is the plan-before-act primitive.",
+  "$id": "https://github.com/alexlqi/promcp/schemas/can-do-input.json",
+  "title": "proMCP can_do input",
+  "description": "Input contract for the can_do tool. Accepts a structured intent query and returns a CapabilityReport (see capability-report.json). can_do is the single generic tool in the proMCP triad — it takes semantic intent, not a capability-specific name. It is the plan-before-act primitive.",
   "type": "object",
   "required": ["intent"],
   "properties": {

@@ -1,20 +1,20 @@
 ﻿"""
-TMCP Exceptions
----------------
-All exceptions raised by the tmcp package.
+proMCP Exceptions
+-----------------
+All exceptions raised by the promcp package.
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
 """
 
 
-class TMCPError(Exception):
-    """Base class for all TMCP errors."""
+class ProMCPError(Exception):
+    """Base class for all proMCP errors."""
 
 
-class ContractViolation(TMCPError):
+class ContractViolation(ProMCPError):
     """
-    Raised when a tool's response violates its TMCP contract at runtime.
+    Raised when a tool's response violates its proMCP contract at runtime.
     This is a programming error — the tool implementation returned a dict
     that does not satisfy the required response schema for its category.
     """
@@ -31,7 +31,7 @@ class ContractViolation(TMCPError):
         super().__init__(msg)
 
 
-class DecoratorMisuseError(TMCPError):
+class DecoratorMisuseError(ProMCPError):
     """
     Raised at decoration time (import / startup) when a decorator is used
     incorrectly — wrong prefix, missing idempotency_key parameter, etc.
@@ -44,10 +44,10 @@ class DecoratorMisuseError(TMCPError):
         super().__init__(msg)
 
 
-class CanDoSingletonError(TMCPError):
+class CanDoSingletonError(ProMCPError):
     """
     Raised when a second @can_do_tool is registered in the same registry.
-    Exactly one can_do tool is permitted per TMCP-compliant server.
+    Exactly one can_do tool is permitted per proMCP-compliant server.
     """
 
     def __init__(self, existing: str, new: str):
@@ -58,7 +58,7 @@ class CanDoSingletonError(TMCPError):
         super().__init__(msg)
 
 
-class InvalidQualityError(TMCPError):
+class InvalidQualityError(ProMCPError):
     """Raised when a read_* tool returns an unknown quality value."""
 
     VALID = {"good", "stale", "degraded", "error"}
@@ -71,7 +71,7 @@ class InvalidQualityError(TMCPError):
         super().__init__(msg)
 
 
-class InvalidStatusError(TMCPError):
+class InvalidStatusError(ProMCPError):
     """Raised when a do_* tool returns an unknown status value."""
 
     VALID = {"success", "partial", "failed"}

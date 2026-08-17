@@ -1,6 +1,6 @@
 ﻿"""
-TMCP Registry
--------------
+proMCP Registry
+-----------------
 Central registry for all tools decorated with @read_tool, @do_tool,
 and @can_do_tool. Each registry instance is independent — supports
 multiple servers in the same process.
@@ -10,7 +10,7 @@ Pass an explicit Registry() instance to decorators for multi-server setups.
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ ToolCategory = Literal["read", "do", "can_do"]
 
 @dataclass
 class ToolEntry:
-    """Metadata for a single registered TMCP tool."""
+    """Metadata for a single registered proMCP tool."""
     name:        str
     category:    ToolCategory
     fn:          Callable
@@ -45,7 +45,7 @@ class ToolEntry:
 
     def to_dict(self) -> dict:
         """
-        Serialize to a raw tool definition dict compatible with tmcp-lint
+        Serialize to a raw tool definition dict compatible with promcp-lint
         and the raw adapter. Includes responseSchema inferred from category.
         """
         base = {
@@ -134,7 +134,7 @@ class ToolEntry:
 
 class Registry:
     """
-    Holds all ToolEntry objects for a single TMCP server instance.
+    Holds all ToolEntry objects for a single proMCP server instance.
     Thread-safe for reads; decoration happens at import time (single-threaded).
     """
 
@@ -165,7 +165,7 @@ class Registry:
         return [t for t in self._tools.values() if t.category == category]
 
     def to_list(self) -> list[dict]:
-        """Export all tools as raw dicts — for tmcp-lint and adapters."""
+        """Export all tools as raw dicts — for promcp-lint and adapters."""
         return [e.to_dict() for e in self._tools.values()]
 
     def __len__(self) -> int:

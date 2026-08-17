@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/alexlqi/tmcp/schemas/capability-report.json",
-  "title": "TMCP CapabilityReport",
+  "$id": "https://github.com/alexlqi/promcp/schemas/capability-report.json",
+  "title": "proMCP CapabilityReport",
   "description": "Response contract for the can_do tool. Returns a structured report of which capabilities are feasible (candidates), which matched semantically but cannot execute (blocked), surrounding context, and query metadata. Orchestrators must check valid_until on each candidate before executing a do_* derived from this report.",
   "type": "object",
   "required": ["query_id", "feasible", "candidates", "blocked"],

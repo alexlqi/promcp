@@ -1,12 +1,12 @@
 ﻿"""
-TMCP Lint Checker
------------------
+proMCP Lint Checker
+---------------------
 All check functions. Decoupled from the CLI so they can be used
 programmatically — in tests, CI pipelines, or from a Registry directly.
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
 """
 
 from __future__ import annotations
@@ -326,7 +326,7 @@ def check_server_level(tools: list[dict]) -> list[Finding]:
     can_do_count = names.count(EXACT_GENERIC)
     if can_do_count == 0:
         findings.append(Finding(Severity.ERROR, "server", "S001",
-            "No 'can_do' tool found. Every TMCP-compliant server must expose exactly one."))
+            "No 'can_do' tool found. Every proMCP-compliant server must expose exactly one."))
     elif can_do_count > 1:
         findings.append(Finding(Severity.ERROR, "server", "S002",
             f"Found {can_do_count} 'can_do' tools. Exactly one is permitted."))
@@ -373,7 +373,7 @@ def lint_server(tools: list[dict]) -> tuple[list[LintResult], list[Finding]]:
 
 def lint_registry(registry) -> tuple[list[LintResult], list[Finding]]:
     """
-    Lint directly from a TMCP Registry instance.
+    Lint directly from a proMCP Registry instance.
     No file loading needed — tools decorated with @read_tool et al.
     already have full responseSchema attached.
     """

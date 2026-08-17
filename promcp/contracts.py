@@ -1,15 +1,15 @@
 ﻿"""
-TMCP Contracts
---------------
+proMCP Contracts
+-----------------
 TypedDicts and dataclasses representing the canonical response shapes
-defined in the TMCP v0.2.0 specification.
+defined in the proMCP specification.
 
 These are used both by the decorators (runtime enforcement) and by the
 linter (static validation).
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
 """
 
 from __future__ import annotations

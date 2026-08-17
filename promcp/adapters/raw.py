@@ -1,9 +1,9 @@
 ﻿"""
-TMCP Raw Adapter
-----------------
+proMCP Raw Adapter
+--------------------
 Exports a Registry as a list of raw tool definition dicts.
 Compatible with any MCP framework that accepts tool definitions as dicts,
-and with tmcp-lint for static validation.
+and with promcp-lint for static validation.
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
@@ -19,7 +19,7 @@ def to_dict(registry: Registry) -> list[dict]:
     Export all tools in the registry as raw tool definition dicts.
 
     The output is a list compatible with:
-    - tmcp-lint (pass directly as the tools list)
+    - promcp-lint (pass directly as the tools list)
     - Any MCP framework that accepts dict-based tool definitions
     - JSON serialization for API exposure
 

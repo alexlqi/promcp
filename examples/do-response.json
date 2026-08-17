@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/alexlqi/tmcp/schemas/do-response.json",
-  "title": "TMCP do_* response",
-  "description": "Response contract for all do_* tools in a TMCP-compliant MCP server. Mutation tools must declare idempotency, compensation, and side effects. The idempotency_key enables safe retry. The compensable field gates rollback capability.",
+  "$id": "https://github.com/alexlqi/promcp/schemas/do-response.json",
+  "title": "proMCP do_* response",
+  "description": "Response contract for all do_* tools in a proMCP-compliant MCP server. Mutation tools must declare idempotency, compensation, and side effects. The idempotency_key enables safe retry. The compensable field gates rollback capability.",
   "type": "object",
   "required": ["status", "idempotency_key", "compensable", "timestamp"],
   "properties": {

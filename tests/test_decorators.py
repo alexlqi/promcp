@@ -1,5 +1,5 @@
 ﻿"""
-Tests for TMCP decorators.
+Tests for proMCP decorators.
 
 Author : @alexlqi (https://github.com/alexlqi)
 """

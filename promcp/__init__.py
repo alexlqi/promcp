@@ -1,10 +1,10 @@
 ﻿"""
-TMCP — Triadic MCP Convention
-==============================
-Decorators, response contracts, registry, and linter for TMCP-compliant
+proMCP — Proactive MCP Convention
+===================================
+Decorators, response contracts, registry, and linter for proMCP-compliant
 MCP server tool design.
 
-Spec    : https://github.com/alexlqi/tmcp
+Spec    : https://github.com/alexlqi/promcp
 Author  : @alexlqi (https://github.com/alexlqi)
 Org     : EnthalpyDW / GoMethos
 License : Apache 2.0
@@ -56,7 +56,7 @@ from promcp.registry import Registry, default_registry
 #: Package version. Until now it moved independently of SPEC.md, so nothing in a release
 #: said which spec version it compiles against — while §14.1 obliges every extension to
 #: declare exactly that. `__spec_version__` states it.
-__version__      = "0.4.1"
+__version__      = "0.5.0"
 __spec_version__ = "0.4.0"
 __author__   = "@alexlqi"
 __spec_url__ = "https://github.com/alexlqi/proMCP"
