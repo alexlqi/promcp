@@ -68,6 +68,39 @@ renames two pieces of public API:
 
 ## [Unreleased]
 
+### Fixed
+
+- **`_infer_input_schema` ignoraba silenciosamente las anotaciones modernas.**
+  Producía `inputSchema` vacío (`{}`) para: anotaciones diferidas por PEP 563
+  (`from __future__ import annotations` — afectaba a TODOS los parámetros del
+  módulo), genéricos builtin (`list[str]`, `dict[str, Any]`), genéricos de
+  `typing` (`List[str]`), uniones PEP 604 (`str | None`) y sus composiciones
+  (`Optional[list[str]]`). La inferencia ahora resuelve las anotaciones con
+  `typing.get_type_hints` y normaliza los genéricos con `typing.get_origin`.
+  Ver [ADR-002](docs/ADR-002-inferencia-de-esquemas.md).
+- **El esquema vacío se manifestaba como un diagnóstico engañoso.** Un `can_do`
+  correcto declarado en un módulo con PEP 563 fallaba con
+  `I002 can_do intent must include 'semantic_tags' array`, apuntando a un campo
+  que el autor nunca declaró en lugar de a la causa real.
+- **`required` ya no excluye los parámetros `Optional[X]` sin valor por
+  defecto.** `Optional[str]` sin default es un argumento obligatorio que acepta
+  `None`; declararlo opcional inducía a omitirlo y provocar un `TypeError`.
+
+### Added
+
+- Los arrays del `inputSchema` declaran `items`
+  (`list[str]` → `{"type": "array", "items": {"type": "string"}}`).
+- `*args` / `**kwargs` se omiten de `properties`: no son expresables en JSON Schema.
+- **`tests/test_decorators.py::TestInputSchemaInference`:** 14 tests de
+  regresión, uno por clase de fallo. 9 de ellos fallan contra 0.5.1.
+
+### Known issues
+
+- La regla `I002` del linter es inaplicable: el comentario de `checker.py` dice
+  que `semantic_tags` se valida en runtime, pero `can_do_tool` solo comprueba la
+  existencia del parámetro `intent`.
+
+
 - `start_*` + `read_status_*` pattern for async long-running mutations (v0.3 target)
 - `stream_*` pattern for continuous observation (v0.4 target)
 - Multi-server saga coordination pattern (v0.5 target)
