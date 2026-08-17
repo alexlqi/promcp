@@ -20,7 +20,9 @@ from __future__ import annotations
 import functools
 import inspect
 import time
-from typing import Any, Callable, Optional
+import types
+import typing
+from typing import Any, Callable, Optional, Union
 
 from promcp.contracts import (
     CanDoResponseBuilder,
@@ -35,59 +37,105 @@ from promcp.registry import Registry, ToolEntry, default_registry
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+PY_TO_JSON: dict = {
+    str: "string", int: "integer", float: "number",
+    bool: "boolean", list: "array", dict: "object",
+}
+
+_UNION_ORIGINS: tuple = (Union, getattr(types, "UnionType", Union))
+
+
+def _resolve_hints(fn: Callable) -> dict:
+    """Resuelve anotaciones a objetos de tipo reales.
+
+    Bajo PEP 563 `inspect.signature` devuelve las anotaciones como *strings*.
+    `typing.get_type_hints` las evalúa contra los globals del módulo de la
+    función. Si la evaluación falla (nombres locales, tipos solo disponibles
+    bajo TYPE_CHECKING) se degrada a las anotaciones crudas: peor esquema,
+    nunca una excepción en tiempo de decoración.
+    """
+    try:
+        return typing.get_type_hints(fn)
+    except Exception:
+        return {}
+
+
+def _unwrap_optional(ann):
+    """`Optional[X]` / `X | None` → `(X, True)`. Otro caso → `(ann, False)`."""
+    if typing.get_origin(ann) not in _UNION_ORIGINS:
+        return ann, False
+    args = typing.get_args(ann)
+    non_null = [a for a in args if a is not type(None)]
+    if len(non_null) != len(args):
+        return (non_null[0] if len(non_null) == 1 else Any), True
+    return ann, False
+
+
+def _json_type(ann) -> Optional[str]:
+    """Tipo JSON de una anotación, o None si no se puede determinar.
+
+    Mira el tipo desnudo y después su `origin`, que es lo que convierte
+    `list[str]`, `typing.List[str]` y `dict[str, Any]` en array/object.
+    """
+    if ann in PY_TO_JSON:
+        return PY_TO_JSON[ann]
+    origin = typing.get_origin(ann)
+    if origin is not None and origin in PY_TO_JSON:
+        return PY_TO_JSON[origin]
+    return None
+
+
+def _schema_for(ann) -> dict:
+    json_type = _json_type(ann)
+    if json_type is None:
+        return {}
+    schema = {"type": json_type}
+    if json_type == "array":
+        args = typing.get_args(ann)
+        if len(args) == 1:
+            item_type = _json_type(args[0])
+            if item_type:
+                schema["items"] = {"type": item_type}
+    return schema
+
+
 def _infer_input_schema(fn: Callable) -> dict:
     """
-    Build a basic JSON Schema inputSchema from Python type annotations.
-    Supports str, int, float, bool, list, dict, Optional[X].
-    Falls back to {} for unannotated or complex types.
-    """
-    PY_TO_JSON = {
-        str:   "string",
-        int:   "integer",
-        float: "number",
-        bool:  "boolean",
-        list:  "array",
-        dict:  "object",
-    }
+    Build a JSON Schema inputSchema from Python type annotations.
 
-    sig        = inspect.signature(fn)
-    properties = {}
-    required   = []
+    Supports str, int, float, bool, list, dict, their parameterized generics
+    (list[str], dict[str, Any], typing.List[str]), Optional[X], X | None, and
+    PEP 563 deferred annotations. Falls back to {} for anything else.
+    """
+    sig = inspect.signature(fn)
+    hints = _resolve_hints(fn)
+
+    properties: dict = {}
+    required: list = []
 
     for name, param in sig.parameters.items():
         if name == "self":
             continue
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
 
-        ann = param.annotation
+        ann = hints.get(name, param.annotation)
+
         if ann is inspect.Parameter.empty:
             properties[name] = {}
             if param.default is inspect.Parameter.empty:
                 required.append(name)
             continue
 
-        # Unwrap Optional[X] → X
-        origin = getattr(ann, "__origin__", None)
-        args   = getattr(ann, "__args__", ())
-        is_optional = (
-            origin is type(None)
-            or (origin is not None and type(None) in args)
-        )
+        inner, is_optional = _unwrap_optional(ann)
+        schema = _schema_for(inner)
+        if is_optional and "type" in schema:
+            schema = {**schema, "type": [schema["type"], "null"]}
+        properties[name] = schema
 
-        inner = ann
-        if is_optional and args:
-            inner = next((a for a in args if a is not type(None)), ann)
-
-        json_type = PY_TO_JSON.get(inner)
-
-        if json_type:
-            prop: dict = {"type": json_type}
-            if is_optional:
-                prop = {"type": [json_type, "null"]}
-            properties[name] = prop
-        else:
-            properties[name] = {}
-
-        if param.default is inspect.Parameter.empty and not is_optional:
+        # Presencia y nulabilidad son distintas: Optional[X] sin default sigue
+        # siendo obligatorio. Ver "Cambio de comportamiento a decidir".
+        if param.default is inspect.Parameter.empty:
             required.append(name)
 
     schema: dict = {"type": "object", "properties": properties}
