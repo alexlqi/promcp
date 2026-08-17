@@ -1,0 +1,24 @@
+# Normalización de finales de línea.
+#
+# Sin esto, un checkout en Windows deja CRLF en el árbol contra un git que guarda LF, y
+# `git status` marca quince ficheros modificados que nadie ha tocado. El ruido no es
+# cosmético: esconde los cambios reales dentro de diffs de fichero entero, y es la razón
+# de que una revisión pueda dar por revisado algo que no se leyó.
+#
+# `text=auto` deja que git decida por contenido y normalice a LF en el repositorio,
+# conservando el final nativo en el árbol de trabajo.
+* text=auto
+
+# La spec y el código se guardan siempre en LF, sin depender de la heurística.
+*.md   text eol=lf
+*.py   text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.txt  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Binarios: que git no los toque.
+*.png  binary
+*.whl  binary
+*.gz   binary
