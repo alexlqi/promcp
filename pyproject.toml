@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "promcp"
-version     = "0.5.1"
+version     = "0.5.2"
 description = "Proactive MCP — decorators and linter for proMCP-compliant MCP servers"
 readme      = "README.md"
 license     = "Apache-2.0"
@@ -17,7 +17,7 @@ keywords    = [
     "llm", "agentic", "tool-design", "promcp",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -46,10 +46,10 @@ dev  = [
 ]
 
 [project.urls]
-Homepage      = "https://github.com/alexlqi/tmcp"
-Repository    = "https://github.com/alexlqi/tmcp"
-Documentation = "https://github.com/alexlqi/tmcp/blob/main/SPEC.md"
-"Bug Tracker" = "https://github.com/alexlqi/tmcp/issues"
+Homepage      = "https://github.com/alexlqi/promcp"
+Repository    = "https://github.com/alexlqi/promcp"
+Documentation = "https://github.com/alexlqi/promcp/blob/main/SPEC.md"
+"Bug Tracker" = "https://github.com/alexlqi/promcp/issues"
 
 [project.scripts]
 promcp-lint = "promcp.linter.cli:main"

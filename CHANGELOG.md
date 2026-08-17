@@ -66,7 +66,7 @@ renames two pieces of public API:
 
 ---
 
-## [Unreleased]
+## [0.5.2] — 2026-08-17
 
 ### Fixed
 
@@ -225,6 +225,12 @@ The following changes in v0.2.0 were derived from the [PhysMCP specification](ht
 
 | Version | Date | Type | Key change |
 |---------|------|------|-----------|
+| 0.5.2 | 2026-08-17 | Patch | Registry `unroutable[]` schema fix, modern type annotation inference |
+| 0.5.1 | 2026-08-17 | Patch | README/SPEC status Working Draft → Production |
+| 0.5.0 | 2026-08-17 | Major (breaking) | Completed TMCP → proMCP rename (`ProMCPError`, `__promcp_name__`/`__promcp_category__`) |
+| 0.4.1 | 2026-08-17 | Patch | `promcp-lint` Windows UnicodeEncodeError fix, stale `tmcp-lint` self-identification fix |
+| 0.4.0 | 2026-08-17 | Minor | `unroutable[]` on CapabilityReport, AP-9/AP-10, linter rules R014/R015 |
+| 0.3.0 | 2026-07-22 | Patch | FastMCP transport adapter (ADR-001), triadic naming compliance fix |
 | 0.2.0 | 2026-04-30 | Minor (breaking) | CapabilityReport, quality, valid_until per candidate, permission enum |
 | 0.1.0 | 2026-04-30 | Initial | Triadic contract declaration |
 
@@ -232,4 +238,4 @@ The following changes in v0.2.0 were derived from the [PhysMCP specification](ht
 
 *Author: [@alexlqi](https://github.com/alexlqi)*
 *Organizations: EnthalpyDW / GoMethos*
-*Repository: [github.com/alexlqi/tmcp](https://github.com/alexlqi/tmcp)*
+*Repository: [github.com/alexlqi/promcp](https://github.com/alexlqi/promcp)*
