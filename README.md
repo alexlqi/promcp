@@ -1,6 +1,6 @@
 ﻿# proMCP — Proactive MCP Convention
 
-**Version 0.3.0 — Working Draft**
+**Version 0.4.0 — Production**
 
 > *A semantic verb contract for MCP tool design: `read_*`, `do_*`, `can_do`*
 
@@ -314,7 +314,7 @@ The validator is available at [github.com/aalinsvid/proMCP](https://github.com/a
 
 ## Status
 
-proMCP v0.3.0 is a working draft. The spec is open for discussion, issues, and pull requests.
+proMCP v0.4.0 is production. The spec is stable and open for discussion, issues, and pull requests.
 
 **Reference domain extension:** [PhysMCP](https://physmcp.org) — Physical Model Context Protocol for IoT mesh deployments.
 

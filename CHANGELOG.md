@@ -7,6 +7,14 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
+## [0.5.1] — 2026-08-17
+
+### Documentation
+
+- **Changed** README.md and SPEC.md status from "Working Draft" to "Production" — the spec has stabilized and is no longer pre-release.
+
+---
+
 ## [0.5.0] — 2026-08-17
 
 ### Tooling — BREAKING

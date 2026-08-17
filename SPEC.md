@@ -2,7 +2,7 @@
 
 **Proactive MCP Convention — Formal Specification**
 **Version: 0.4.0**
-**Status: Working Draft**
+**Status: Production**
 **Author: [@alexlqi](https://github.com/alexlqi) — EnthalpyDW / GoMethos**
 **License: CC-BY-SA 4.0**
 
