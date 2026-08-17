@@ -1,11 +1,11 @@
 ﻿"""
-tmcp-lint CLI
--------------
-Entry point for the tmcp-lint command.
+promcp-lint CLI
+----------------
+Entry point for the promcp-lint command.
 
 Author : @alexlqi (https://github.com/alexlqi)
 Org    : EnthalpyDW / GoMethos
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ import json
 import os
 import sys
 
+from promcp import __spec_version__
 from promcp.linter.checker import (
     Finding,
     LintResult,
@@ -23,6 +24,15 @@ from promcp.linter.checker import (
     lint_registry,
     lint_server,
 )
+
+# Windows consoles default to a legacy codepage (e.g. cp1252) that can't
+# encode the ✗/⚠/✓/· glyphs below, crashing the CLI with UnicodeEncodeError.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +72,7 @@ def load_tools(path: str) -> list[dict]:
         sys.exit(2)
 
     if ext == ".py":
-        spec = importlib.util.spec_from_file_location("_tmcp_target", path)
+        spec = importlib.util.spec_from_file_location("_promcp_target", path)
         mod  = importlib.util.module_from_spec(spec)
         try:
             spec.loader.exec_module(mod)
@@ -76,7 +86,7 @@ def load_tools(path: str) -> list[dict]:
             if isinstance(attr, Registry):
                 return attr.to_list()
 
-        # Priority 2: tmcp.registry.default_registry populated by decorators
+        # Priority 2: promcp.registry.default_registry populated by decorators
         try:
             from promcp.registry import default_registry
             if len(default_registry) > 0:
@@ -126,7 +136,7 @@ def print_human(
 
     errors = warnings = info = 0
 
-    print(f"\n{BOLD}tmcp-lint{RESET}  TMCP v0.2.0 — {path}\n")
+    print(f"\n{BOLD}promcp-lint{RESET}  proMCP v{__spec_version__} — {path}\n")
 
     if server_findings:
         print(f"{BOLD}Server{RESET}")
@@ -167,7 +177,7 @@ def print_human(
     if errors or (strict and warnings):
         exit_code = 1
 
-    print(f"\n  Spec : https://github.com/alexlqi/tmcp")
+    print(f"\n  Spec : https://github.com/alexlqi/promcp")
     print(f"  Author: @alexlqi\n")
     return exit_code
 
@@ -182,7 +192,7 @@ def print_json_output(
     has_warnings = any(f.severity == Severity.WARNING for f in all_findings)
 
     output = {
-        "tmcp_version": "0.2.0",
+        "promcp_version": __spec_version__,
         "server":       [f.to_dict() for f in server_findings],
         "tools":        [r.to_dict() for r in tool_results],
         "summary": {
@@ -202,18 +212,18 @@ def print_json_output(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="tmcp-lint",
-        description="Validate MCP server tool definitions against TMCP v0.2.0.",
+        prog="promcp-lint",
+        description=f"Validate MCP server tool definitions against proMCP v{__spec_version__}.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  tmcp-lint tools.json
-  tmcp-lint my_server.py --strict
-  tmcp-lint tools.yaml --json
-  tmcp-lint my_server.py --strict --json
+  promcp-lint tools.json
+  promcp-lint my_server.py --strict
+  promcp-lint tools.yaml --json
+  promcp-lint my_server.py --strict --json
 
 Author : @alexlqi (https://github.com/alexlqi)
-Spec   : https://github.com/alexlqi/tmcp
+Spec   : https://github.com/alexlqi/promcp
         """,
     )
     parser.add_argument("file", help="Path to server file (.py, .json, .yaml)")

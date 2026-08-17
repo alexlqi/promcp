@@ -7,6 +7,15 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 
 ---
 
+## [0.4.1] — 2026-08-17
+
+### Tooling
+
+- **Fixed** `promcp-lint` crashing with `UnicodeEncodeError` on Windows consoles using a legacy codepage (e.g. cp1252), which can't encode the CLI's `✗ ⚠ ✓ ·` glyphs. stdout/stderr are now reconfigured to UTF-8 when the interpreter supports it.
+- **Fixed** `promcp-lint` still identifying itself as `tmcp-lint` / `TMCP v0.2.0` and linking to the old `github.com/alexlqi/tmcp` repo — leftover from the package rename that `promcp/linter/cli.py` was missed by. It now reports the real spec version via `promcp.__spec_version__` and the current repo URL (`github.com/alexlqi/promcp`). The `--json` output key is renamed `tmcp_version` → `promcp_version`.
+
+---
+
 ## [0.4.0] — 2026-08-17
 
 ### Specification
