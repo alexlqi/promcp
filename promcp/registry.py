@@ -126,6 +126,33 @@ class ToolEntry:
                             },
                         },
                     },
+                    # §6.3 — no hay capacidad que nombrar cuando nada produce el
+                    # resultado pedido, así que `unroutable[]` no lleva
+                    # `capability`: lleva el outcome que no se pudo alcanzar.
+                    "unroutable": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "outcome": {"type": "string"},
+                                "reason":  {
+                                    "type": "string",
+                                    "enum": [
+                                        "no_producer",
+                                        "requirements_unmet",
+                                        "malformed_request",
+                                    ],
+                                },
+                                "detail":  {"type": "string"},
+                                "producers_found": {
+                                    "type": "array", "items": {"type": "string"},
+                                },
+                                "missing_requirements": {
+                                    "type": "array", "items": {"type": "string"},
+                                },
+                            },
+                        },
+                    },
                 },
             }
 

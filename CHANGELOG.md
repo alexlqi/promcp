@@ -70,6 +70,14 @@ renames two pieces of public API:
 
 ### Fixed
 
+- **El `responseSchema` de `can_do` que genera el `Registry` no declaraba
+  `unroutable[]`.** 0.4.0 añadió el campo a `promcp.contracts` y las reglas
+  R014/R015 al linter, pero `ToolEntry.to_dict()` siguió emitiendo el esquema de
+  0.3.0. Consecuencia: todo servidor construido con los decoradores dispara R015
+  y su autor no puede arreglarlo, porque ese esquema lo genera la librería, no
+  el servidor; y R014 no podía dispararse nunca, porque solo se evalúa cuando
+  `unroutable` está en `properties` y nunca lo estaba. El esquema declara ahora
+  el objeto completo, con `reason` restringido al enum de §6.3.
 - **`_infer_input_schema` ignoraba silenciosamente las anotaciones modernas.**
   Producía `inputSchema` vacío (`{}`) para: anotaciones diferidas por PEP 563
   (`from __future__ import annotations` — afectaba a TODOS los parámetros del
@@ -100,6 +108,7 @@ renames two pieces of public API:
   que `semantic_tags` se valida en runtime, pero `can_do_tool` solo comprueba la
   existencia del parámetro `intent`.
 
+### Roadmap
 
 - `start_*` + `read_status_*` pattern for async long-running mutations (v0.3 target)
 - `stream_*` pattern for continuous observation (v0.4 target)
