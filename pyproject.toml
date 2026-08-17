@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name        = "promcp"
-version     = "0.3.0"
+version     = "0.4.0"
 description = "Proactive MCP — decorators and linter for proMCP-compliant MCP servers"
 readme      = "README.md"
 license     = "Apache-2.0"
