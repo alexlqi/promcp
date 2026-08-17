@@ -1,7 +1,7 @@
 ﻿# proMCP Specification
 
 **Proactive MCP Convention — Formal Specification**
-**Version: 0.3.0**
+**Version: 0.4.0**
 **Status: Working Draft**
 **Author: [@alexlqi](https://github.com/alexlqi) — EnthalpyDW / GoMethos**
 **License: CC-BY-SA 4.0**
@@ -281,9 +281,47 @@ RECOMMENDED fields:
 ```json
 {
   "context": {},
-  "metadata": {}
+  "metadata": {},
+  "unroutable": []
 }
 ```
+
+**`unroutable[]` — when there is no route at all**
+
+`blocked[]` describes *a route that exists and is not traversable*, which is why every entry names a `capability`. When **no capability produces the requested outcome at all**, there is no capability to name — and §12.2 still requires the report to explain a `feasible: false`.
+
+Without `unroutable[]`, a conformant server has two bad options: invent a capability name to fill `blocked[]`, or return an unexplained `false`. Both were observed in practice, including in this specification's own reference implementation, which emitted `"capability": "unknown"` on its unreachable-source path.
+
+**Unroutable object — REQUIRED fields:**
+
+```json
+{
+  "outcome": "string",
+  "reason": "no_producer",
+  "detail": "string"
+}
+```
+
+`reason` MUST be one of:
+
+| Value | Meaning |
+|-------|---------|
+| `no_producer` | No declared capability produces this outcome. The gap is in the catalogue. |
+| `requirements_unmet` | Producers exist, but none of their preconditions are satisfiable from the given inputs. |
+| `malformed_request` | The request declares no outcome to route to. |
+
+**Unroutable object — RECOMMENDED fields:**
+
+```json
+{
+  "producers_found": ["read_stock"],
+  "missing_requirements": ["sku_id"]
+}
+```
+
+These two carry the actionable part. *"No route"* ends the conversation; *"three capabilities produce this and all three are missing `sku_id`"* continues it, and usually points at an input the caller failed to supply rather than a hole in the server.
+
+A server that populates `unroutable[]` MUST set `feasible: false`. Returning `feasible: true` alongside a non-empty `unroutable[]` claims a plan that does not reach the requested outcome.
 
 **Candidate object — REQUIRED fields:**
 
@@ -494,6 +532,29 @@ RECOMMENDED fields:
     "feasible": {
       "type": "boolean"
     },
+    "unroutable": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["outcome", "reason", "detail"],
+        "properties": {
+          "outcome": { "type": "string" },
+          "reason": {
+            "type": "string",
+            "enum": ["no_producer", "requirements_unmet", "malformed_request"]
+          },
+          "detail": { "type": "string" },
+          "producers_found": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "missing_requirements": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
     "candidates": {
       "type": "array",
       "items": {
@@ -653,6 +714,18 @@ The client (orchestrator) MUST:
 - Retain `idempotency_key` for the duration of any compensation or audit trail
 
 The client SHOULD use UUIDv4 for `idempotency_key` generation.
+
+**"Per logical operation" means per operation instance, not per operation type.** A key derived only from *what* is being done — the tool name, its position in a plan, the step index — collides across distinct operations, and the collision is silent by construction: §9.2 requires the server to recognise the repeated key and return the first operation's result *without re-applying the effect*. The second operation then reports `status: succeeded` while nothing happened.
+
+If the key is derived rather than random, it MUST incorporate something that distinguishes the operation instance — the target resource, a plan or request identifier, a transaction id. It MUST NOT be derived from the tool name and call position alone.
+
+```
+BAD   svc:do_transfer:step7          same for every plan that transfers anything
+GOOD  svc:req_8f3a91:do_transfer     distinct per request, stable across retries
+GOOD  550e8400-e29b-41d4-a716-446655440000
+```
+
+The property to preserve is exactly the two lines above it: **two different operations differ, two retries of the same operation match.** Derived keys are permitted precisely because the second half is hard to achieve with UUIDv4 alone when the client is stateless.
 
 ### 9.2 Server responsibilities
 
@@ -858,6 +931,20 @@ Naming tools `do_action`, `read_data`, `do_update`. Generic names provide no sem
 
 Treating a `feasible: false` response as a permanent error. Blocked candidates may be recoverable — rate limits reset, cooldowns expire, permissions can be elevated. The orchestrator SHOULD inspect `permission` values to determine recoverability.
 
+### AP-9: `idempotency_key` derived from operation type instead of operation instance
+
+Building the key from the tool name and its position in a plan — `svc:do_transfer:step7` — so that every plan performing that operation produces the same key.
+
+This is the most expensive anti-pattern in the specification because **the damage is done by a server that is behaving correctly.** §9.2 obliges the server not to re-apply side effects for a repeated key; on the second operation it returns the first one's `status` and `applied_value`, and the second operation never happens. The response is `succeeded`. No error is raised, no retry is triggered, and any post-condition check reads the wrong resource.
+
+A key that is stable across *operations* rather than across *retries* inverts the contract it was meant to satisfy. See §9.1.
+
+### AP-10: Asserting `feasible` instead of deriving it
+
+Setting `feasible: true` because a plan was produced, rather than computing it from the candidates. §12.2 states the equivalence in both directions; implementations routinely enforce only `feasible ⟹ candidates exist` and leave the converse unchecked.
+
+The failure appears the moment policy evaluation is added: a report whose candidates are all blocked, marked `feasible: true`, is precisely what leads a **conformant** orchestrator to call a `do_*` that policy had already denied.
+
 ---
 
 ## 16. Compliance Checklist
@@ -874,7 +961,9 @@ Treating a `feasible: false` response as a permanent error. Blocked candidates m
 - [ ] `can_do` tool is present and is the only generic tool
 - [ ] Every `can_do` candidate includes `capability`, `source`, `confidence`, `permission`, `valid_until`
 - [ ] Every `can_do` blocked entry includes `capability`, `source`, `permission`, `reason`
-- [ ] `feasible` is `true` iff at least one candidate has `permission: allowed`
+- [ ] `feasible` is `true` iff at least one candidate has `permission: allowed` — **derived, not asserted** (AP-10)
+- [ ] `feasible: false` is always explained by a non-empty `blocked[]` or `unroutable[]`
+- [ ] `unroutable[]` is empty whenever `feasible` is `true`
 - [ ] `permission` values use only the defined enum
 
 ### Orchestrator compliance
@@ -884,6 +973,8 @@ Treating a `feasible: false` response as a permanent error. Blocked candidates m
 - [ ] `quality: degraded` escalates to human review
 - [ ] `valid_until` is checked before every `do_*` execution
 - [ ] `idempotency_key` is retained per operation and reused on retry
+- [ ] `idempotency_key` distinguishes operation *instances*, not operation types (AP-9)
+- [ ] `valid_until` windows follow the volatility bands of §11.3 rather than a flat constant
 - [ ] `compensable: false` failures escalate to human review
 - [ ] `confidence < 0.7` escalates to human review
 - [ ] `requires_human_approval` never proceeds autonomously
@@ -1038,6 +1129,25 @@ Orchestrator behavior: surface to human operator with full candidate details and
 ---
 
 ## 18. Changelog
+
+### v0.4.0 (2026-08-17)
+
+Every change below came from a domain extension (devMCP) being verified against this
+specification rather than written from a reading of it. Each one is a place where a
+conformant implementation could be wrong without producing an error.
+
+**Added**
+- `unroutable[]` on CapabilityReport (§6.3, §7.4) — the "no route exists" case. `blocked[]` cannot express it, because it names a capability and in this case there is none. The reference implementation was itself emitting `"capability": "unknown"` to work around the gap.
+- AP-9 — `idempotency_key` derived from operation *type* instead of operation *instance*. Silent by construction: §9.2 obliges the server not to re-apply, so the second operation returns `succeeded` and never runs.
+- AP-10 — asserting `feasible` instead of deriving it from candidate permissions.
+- Compliance checklist items for the above, plus `valid_until` following §11.3 bands rather than a flat constant.
+
+**Clarified**
+- §9.1 — what "per logical operation" means, with the derived-key rule: a key MUST NOT be derived from tool name and call position alone.
+- §14.1.3 — the `promcp_base` example was pinned to `0.2.0` while this specification had moved to 0.3.0, so extensions copying the rule literally declared a stale base. The rule now says to name a released version and to re-verify on each release.
+
+**Not changed, and deliberately so**
+- §13.1 remains a recommendation with no protocol limit. Extensions have been reading "≤ 8" as a hard cap; the table already says otherwise, and the sub-limits (`do_*` ≤ 5, `read_*` ≤ 6) are the part that actually gets ignored.
 
 ### v0.3.0 (2026-07-22)
 - No spec-content changes; released alongside the FastMCP transport adapter (ADR-001) and transport naming fixes. See `CHANGELOG.md` for tooling details.

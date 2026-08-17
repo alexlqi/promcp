@@ -1,9 +1,28 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to the TMCP specification and tooling will be documented in this file.
+All notable changes to the proMCP specification and tooling will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Specification changes follow: **Major** = incompatible contract changes, **Minor** = backward-compatible additions, **Patch** = clarifications and corrections.
+
+---
+
+## [0.4.0] — 2026-08-17
+
+### Specification
+
+- **Added** `unroutable[]` to CapabilityReport (§6.3, §7.4). `blocked[]` names a capability, so it cannot express "nothing produces this outcome" — and §12.2 still demands an explanation for `feasible: false`. The reference implementation was papering over the gap with `"capability": "unknown"`.
+- **Added** AP-9: `idempotency_key` derived from operation type rather than operation instance. A server obeying §9.2 returns the first operation's result and skips the second one's effect; the caller sees `succeeded`.
+- **Added** AP-10: asserting `feasible` instead of deriving it from candidate permissions.
+- **Clarified** §9.1 with an explicit rule for derived keys and worked bad/good examples.
+- **Fixed** §14.1.3, whose `promcp_base` example was pinned to `0.2.0` after the spec moved to 0.3.0 — extensions copying it literally declared a stale base.
+
+### Tooling
+
+- **Added** `UnroutableEntry` and `CapabilityReport.unroutable` to `promcp.contracts`.
+- **Changed** `CanDoResponseBuilder` exception path to report an unreachable source through `unroutable[]` instead of a synthetic `"capability": "unknown"` blocked entry.
+- **Added** linter checks `R014` (unroutable entry shape) and `R015` (`unroutable[]` declared without `feasible` being derivable).
+- **Fixed** this file describing itself as the changelog of "the TMCP specification", and the `tmcp lint` reference in Unreleased.
 
 ---
 
@@ -12,7 +31,7 @@ Specification changes follow: **Major** = incompatible contract changes, **Minor
 - `start_*` + `read_status_*` pattern for async long-running mutations (v0.3 target)
 - `stream_*` pattern for continuous observation (v0.4 target)
 - Multi-server saga coordination pattern (v0.5 target)
-- `tmcp lint` validator CLI
+- `promcp-lint` validator CLI
 
 ---
 

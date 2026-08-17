@@ -8,6 +8,7 @@ import pytest
 from promcp import read_tool, do_tool, can_do_tool
 from promcp.registry import Registry
 from promcp.exceptions import (
+    ContractViolation,
     DecoratorMisuseError,
     CanDoSingletonError,
     InvalidQualityError,
@@ -317,6 +318,13 @@ class TestCanDoTool:
         assert r1["query_id"] != r2["query_id"]  # unique per call
 
     def test_exception_returns_feasible_false(self):
+        """An unreachable source is unroutable, not blocked (spec §6.3).
+
+        This test previously asserted a blocked[] entry with `capability: "unknown"`.
+        That was the workaround for a gap in the spec, and asserting it pinned the gap
+        in place: `blocked[]` types its first field as a capability, and "unknown" is
+        not one. Nothing could be evaluated, so there is no capability to name.
+        """
         reg = Registry("test_can_do_exc")
 
         @can_do_tool(description="Failing can_do.", registry=reg)
@@ -325,8 +333,57 @@ class TestCanDoTool:
 
         result = can_do(intent={"semantic_tags": ["x"]})
         assert result["feasible"] is False
-        assert len(result["blocked"]) == 1
-        assert result["blocked"][0]["permission"] == "source_unreachable"
+        assert result["blocked"] == []
+        assert len(result["unroutable"]) == 1
+        assert result["unroutable"][0]["reason"] == "requirements_unmet"
+        assert "mesh unreachable" in result["unroutable"][0]["detail"]
+
+    def test_unroutable_explains_an_infeasible_report(self):
+        """§12.2 demands `feasible: false` be explained; §6.3 gives it the vocabulary."""
+        reg = Registry("test_can_do_unroutable")
+
+        @can_do_tool(description="Nothing produces this.", registry=reg)
+        def can_do(intent: dict) -> dict:
+            return {
+                "candidates": [],
+                "blocked": [],
+                "unroutable": [{
+                    "outcome": "stock_level",
+                    "reason": "no_producer",
+                    "detail": "no declared capability produces stock_level",
+                }],
+            }
+
+        result = can_do(intent={"semantic_tags": ["stock"]})
+        assert result["feasible"] is False
+        assert result["unroutable"][0]["reason"] == "no_producer"
+
+    def test_unroutable_rejects_unknown_reason(self):
+        reg = Registry("test_can_do_unroutable_bad")
+
+        @can_do_tool(description="Bad reason.", registry=reg)
+        def can_do(intent: dict) -> dict:
+            return {"unroutable": [{"outcome": "x", "reason": "made_up", "detail": "d"}]}
+
+        with pytest.raises(ContractViolation, match="made_up"):
+            can_do(intent={"semantic_tags": ["x"]})
+
+    def test_feasible_and_unroutable_are_mutually_exclusive(self):
+        """A report cannot claim a route and record that the outcome is unreachable."""
+        reg = Registry("test_can_do_contradiction")
+
+        @can_do_tool(description="Contradictory.", registry=reg)
+        def can_do(intent: dict) -> dict:
+            return {
+                "candidates": [{
+                    "capability": "read_stock", "source": "wms", "confidence": 0.9,
+                    "permission": "allowed", "valid_until": "2026-01-01T00:00:00Z",
+                }],
+                "unroutable": [{"outcome": "x", "reason": "no_producer", "detail": "d"}],
+            }
+
+        with pytest.raises(ContractViolation, match="unroutable"):
+            can_do(intent={"semantic_tags": ["x"]})
 
     def test_wrong_name_raises(self):
         reg = Registry("test_can_do_name")

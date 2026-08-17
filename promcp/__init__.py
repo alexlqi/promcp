@@ -53,9 +53,13 @@ Quick start
 from promcp.decorators import can_do_tool, do_tool, read_tool
 from promcp.registry import Registry, default_registry
 
-__version__  = "0.3.0"
+#: Package version. Until now it moved independently of SPEC.md, so nothing in a release
+#: said which spec version it compiles against — while §14.1 obliges every extension to
+#: declare exactly that. `__spec_version__` states it.
+__version__      = "0.4.0"
+__spec_version__ = "0.4.0"
 __author__   = "@alexlqi"
-__spec_url__ = "https://github.com/alexlqi/tmcp"
+__spec_url__ = "https://github.com/alexlqi/proMCP"
 
 __all__ = [
     "read_tool",
@@ -64,4 +68,5 @@ __all__ = [
     "Registry",
     "default_registry",
     "__version__",
+    "__spec_version__",
 ]

@@ -218,11 +218,40 @@ class BlockedEntry(TypedDict, total=False):
     details:    Optional[str]
 
 
+class UnroutableEntry(TypedDict, total=False):
+    """No route exists to the requested outcome — spec §6.3.
+
+    Distinct from BlockedEntry, which describes a route that exists and is not
+    traversable, and therefore names a capability. When nothing produces the outcome
+    there is no capability to name, yet §12.2 still requires `feasible: false` to be
+    explained. Before this entry existed the only conformant options were to invent a
+    capability name or to return an unexplained `false`.
+
+    `producers_found` / `missing_requirements` carry the actionable half: "no route"
+    ends the conversation, "three capabilities produce this and all three are missing
+    `sku_id`" continues it — and usually points at a missing input rather than a hole
+    in the server.
+    """
+    outcome:              str        # required
+    reason:               str        # required — no_producer | requirements_unmet | malformed_request
+    detail:               str        # required
+    producers_found:      list[str]  # recommended
+    missing_requirements: list[str]  # recommended
+
+
+UNROUTABLE_REASONS: frozenset[str] = frozenset({
+    "no_producer",
+    "requirements_unmet",
+    "malformed_request",
+})
+
+
 class CapabilityReport(TypedDict, total=False):
     query_id:   str              # required
     feasible:   bool             # required — auto-calculated
     candidates: list[Candidate]  # required
     blocked:    list[BlockedEntry]  # required
+    unroutable: list[UnroutableEntry]  # recommended — §6.3
     context:    dict             # recommended
     metadata:   dict             # recommended
 
@@ -250,15 +279,19 @@ class CanDoResponseBuilder:
         import uuid
 
         if exc is not None:
+            # An unreachable source is not a blocked route: no capability could be
+            # evaluated, so there is no capability to name. This used to emit
+            # `"capability": "unknown"`, which put a non-existent capability name into a
+            # field the spec types as a capability — the exact gap `unroutable[]` closes.
             return CapabilityReport(
                 query_id=str(uuid.uuid4()),
                 feasible=False,
                 candidates=[],
-                blocked=[{
-                    "capability": "unknown",
-                    "source":     self.tool_name,
-                    "permission": "source_unreachable",
-                    "reason":     str(exc),
+                blocked=[],
+                unroutable=[{
+                    "outcome": self.tool_name,
+                    "reason":  "requirements_unmet",
+                    "detail":  f"source unreachable: {exc}",
                 }],
                 context={},
                 metadata={"timestamp": _now(), "total_latency_ms": latency_ms},
@@ -266,8 +299,10 @@ class CanDoResponseBuilder:
 
         candidates: list[Candidate] = raw.get("candidates", [])
         blocked:    list[BlockedEntry] = raw.get("blocked", [])
+        unroutable: list[UnroutableEntry] = raw.get("unroutable", [])
 
         from promcp.exceptions import ContractViolation
+
         for i, candidate in enumerate(candidates):
             if "valid_until" not in candidate:
                 raise ContractViolation(
@@ -277,17 +312,45 @@ class CanDoResponseBuilder:
                     "Every candidate must declare when its precondition snapshot expires.",
                 )
 
-        # Auto-calculate feasible
+        for i, entry in enumerate(unroutable):
+            missing = [f for f in ("outcome", "reason", "detail") if f not in entry]
+            if missing:
+                raise ContractViolation(
+                    self.tool_name,
+                    missing,
+                    f"unroutable[{i}] is missing required field(s) {missing}. "
+                    "An unroutable entry that does not say what could not be reached, "
+                    "why, and in what terms is an unexplained refusal.",
+                )
+            if entry["reason"] not in UNROUTABLE_REASONS:
+                raise ContractViolation(
+                    self.tool_name,
+                    ["reason"],
+                    f"unroutable[{i}].reason = {entry['reason']!r} is not one of "
+                    f"{sorted(UNROUTABLE_REASONS)} (spec §6.3).",
+                )
+
+        # Auto-calculate feasible — §12.2, both directions.
         feasible = any(
             c.get("permission") == "allowed"
             for c in candidates
         )
+
+        if feasible and unroutable:
+            raise ContractViolation(
+                self.tool_name,
+                ["unroutable"],
+                "feasible resolves to true while unroutable[] is non-empty. A report "
+                "cannot both claim a viable route and record that the outcome is "
+                "unreachable; one of the two is wrong (spec §6.3).",
+            )
 
         result: CapabilityReport = {
             "query_id":   raw.get("query_id", str(uuid.uuid4())),
             "feasible":   feasible,
             "candidates": candidates,
             "blocked":    blocked,
+            "unroutable": unroutable,
             "context":    raw.get("context", {}),
             "metadata":   {
                 "timestamp":        _now(),
