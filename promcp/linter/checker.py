@@ -81,6 +81,8 @@ REQUIRED_DO          = {"status", "idempotency_key", "compensable", "timestamp"}
 REQUIRED_CAN_DO      = {"query_id", "feasible", "candidates", "blocked"}
 REQUIRED_CANDIDATE   = {"capability", "source", "confidence", "permission", "valid_until"}
 REQUIRED_BLOCKED     = {"capability", "source", "permission", "reason"}
+REQUIRED_UNROUTABLE  = {"outcome", "reason", "detail"}
+UNROUTABLE_REASONS   = {"no_producer", "requirements_unmet", "malformed_request"}
 
 GENERIC_NAMES = {
     "do_action", "do_update", "do_create", "do_delete",
@@ -270,6 +272,28 @@ def check_response_schema(tool: dict) -> list[Finding]:
             for f in REQUIRED_BLOCKED - set(item_props.keys()):
                 findings.append(Finding(Severity.ERROR, name, "R013",
                     f"can_do blocked[] missing required field: '{f}'."))
+
+        # §6.3 — unroutable[]. Not required, but if it is declared it must be right:
+        # a malformed unroutable entry is an unexplained refusal wearing a schema.
+        if "unroutable" in props:
+            item_props = props["unroutable"].get("items", {}).get("properties", {})
+            for f in REQUIRED_UNROUTABLE - set(item_props.keys()):
+                findings.append(Finding(Severity.ERROR, name, "R014",
+                    f"can_do unroutable[] missing required field: '{f}'. "
+                    f"Required: {sorted(REQUIRED_UNROUTABLE)} (spec §6.3)."))
+            if "reason" in item_props:
+                r_enum  = set(item_props["reason"].get("enum", []))
+                invalid = r_enum - UNROUTABLE_REASONS
+                if invalid:
+                    findings.append(Finding(Severity.ERROR, name, "R014",
+                        f"can_do unroutable[].reason enum has unknown values: {sorted(invalid)}. "
+                        f"Allowed: {sorted(UNROUTABLE_REASONS)} (spec §6.3)."))
+        else:
+            findings.append(Finding(Severity.INFO, name, "R015",
+                "can_do responseSchema declares no 'unroutable[]'. Without it, a request "
+                "whose outcome no capability produces has to be reported either by "
+                "inventing a capability name in blocked[] or by an unexplained "
+                "feasible: false (spec §6.3)."))
 
     return findings
 
