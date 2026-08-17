@@ -4,8 +4,11 @@ Tests for proMCP decorators.
 Author : @alexlqi (https://github.com/alexlqi)
 """
 
+from typing import Any, Dict, List, Optional
+
 import pytest
 from promcp import read_tool, do_tool, can_do_tool
+from promcp.decorators import _infer_input_schema
 from promcp.registry import Registry
 from promcp.exceptions import (
     ContractViolation,
@@ -460,3 +463,163 @@ class TestRegistry:
             errors += [f for f in r.findings if f.severity.value == "error"]
 
         assert errors == [], f"Expected no errors, got: {[e.message for e in errors]}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# inputSchema inference — regression suite for ADR-002
+#
+# Every case below produced an empty schema ({}) before 0.3.1. The empty schema
+# was silent: no error, no warning — it surfaced later as a misleading linter
+# diagnostic (I002 on can_do) pointing at a field the author never declared.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestInputSchemaInference:
+
+    @staticmethod
+    def _schema(fn):
+        return _infer_input_schema(fn)["properties"]
+
+    # -- The five failure classes ---------------------------------------------
+
+    def test_pep563_deferred_annotations(self):
+        """`from __future__ import annotations` turns every annotation into a
+        string. Before the fix this emptied EVERY parameter of the module."""
+        src = (
+            "from __future__ import annotations\n"
+            "from typing import Optional\n"
+            "def f(intent: dict, name: str, n: int, flag: bool,\n"
+            "      scope: Optional[list[str]] = None) -> dict: ...\n"
+        )
+        ns = {}
+        exec(compile(src, "<deferred>", "exec"), ns)
+
+        props = self._schema(ns["f"])
+        assert props["intent"] == {"type": "object"}
+        assert props["name"] == {"type": "string"}
+        assert props["n"] == {"type": "integer"}
+        assert props["flag"] == {"type": "boolean"}
+        assert props["scope"]["type"] == ["array", "null"]
+        assert not any(p == {} for p in props.values())
+
+    def test_pep585_builtin_generics(self):
+        def f(tags: list[str], meta: dict[str, Any]) -> dict: ...
+
+        props = self._schema(f)
+        assert props["tags"] == {"type": "array", "items": {"type": "string"}}
+        assert props["meta"] == {"type": "object"}
+
+    def test_typing_generics(self):
+        def f(tags: List[str], meta: Dict[str, Any]) -> dict: ...
+
+        props = self._schema(f)
+        assert props["tags"] == {"type": "array", "items": {"type": "string"}}
+        assert props["meta"] == {"type": "object"}
+
+    def test_pep604_unions(self):
+        """`str | None` is types.UnionType and has no __origin__ attribute the
+        old code could match on."""
+        src = "def f(name: str | None = None) -> dict: ...\n"
+        ns = {}
+        exec(compile(src, "<union>", "exec"), ns)
+
+        assert self._schema(ns["f"])["name"] == {"type": ["string", "null"]}
+
+    def test_optional_generic_composition(self):
+        def f(tags: Optional[list[str]] = None) -> dict: ...
+
+        assert self._schema(f)["tags"] == {
+            "type": ["array", "null"],
+            "items": {"type": "string"},
+        }
+
+    # -- Behaviour preserved ---------------------------------------------------
+
+    def test_bare_builtin_types_still_work(self):
+        def f(a: str, b: int, c: float, d: bool, e: list, g: dict) -> dict: ...
+
+        props = self._schema(f)
+        assert [props[k]["type"] for k in "abcdeg"] == [
+            "string", "integer", "number", "boolean", "array", "object",
+        ]
+
+    def test_unannotated_parameter_stays_empty(self):
+        def f(a, b: str = "x") -> dict: ...
+
+        assert self._schema(f)["a"] == {}
+
+    def test_unresolvable_annotation_degrades_without_raising(self):
+        """A type that cannot be resolved must yield {} — never an exception at
+        decoration time. Worst case, the patch ties with the old behaviour."""
+        src = (
+            "from __future__ import annotations\n"
+            "def f(x: SomeTypeThatDoesNotExist) -> dict: ...\n"
+        )
+        ns = {}
+        exec(compile(src, "<unresolvable>", "exec"), ns)
+
+        assert self._schema(ns["f"])["x"] == {}
+
+    def test_untyped_generic_item_omits_items_key(self):
+        def f(rows: list) -> dict: ...
+
+        assert self._schema(f)["rows"] == {"type": "array"}
+
+    # -- required ---------------------------------------------------------------
+
+    def test_optional_without_default_is_required(self):
+        """Nullability and presence are different things: Optional[str] with no
+        default is a mandatory argument that accepts None. Declaring it optional
+        made models omit it and the call fail with TypeError."""
+        def f(a: Optional[str], b: str = "x") -> dict: ...
+
+        assert _infer_input_schema(f)["required"] == ["a"]
+
+    def test_defaults_are_never_required(self):
+        def f(a: str = "x", b: Optional[int] = None) -> dict: ...
+
+        assert "required" not in _infer_input_schema(f)
+
+    # -- Varargs -----------------------------------------------------------------
+
+    def test_varargs_and_kwargs_are_skipped(self):
+        """*args/**kwargs cannot be expressed in JSON Schema properties."""
+        def f(a: str, *args, **kwargs) -> dict: ...
+
+        assert set(self._schema(f)) == {"a"}
+
+    # -- End-to-end through the decorators ---------------------------------------
+
+    def test_can_do_under_pep563_registers_a_typed_intent(self):
+        """The bug that surfaced this ADR: a correct can_do declared in a module
+        with PEP 563 failed the linter with I002 about 'semantic_tags'."""
+        src = (
+            "from __future__ import annotations\n"
+            "from typing import Optional\n"
+            "def can_do(intent: dict, scope: Optional[list[str]] = None) -> dict:\n"
+            "    return {'candidates': [], 'blocked': []}\n"
+        )
+        ns = {}
+        exec(compile(src, "<candomod>", "exec"), ns)
+
+        reg = Registry("test_can_do_pep563")
+        can_do_tool(description="Check feasibility.", registry=reg)(ns["can_do"])
+
+        intent = reg.get("can_do").input_schema["properties"]["intent"]
+        assert intent == {"type": "object"}
+
+    def test_do_tool_under_pep563_types_idempotency_key(self):
+        src = (
+            "from __future__ import annotations\n"
+            "from typing import Optional\n"
+            "def do_thing(idempotency_key: str, tags: Optional[list[str]] = None) -> dict:\n"
+            "    return {}\n"
+        )
+        ns = {}
+        exec(compile(src, "<domod>", "exec"), ns)
+
+        reg = Registry("test_do_pep563")
+        do_tool(description="Do a thing.", compensable=False, registry=reg)(ns["do_thing"])
+
+        props = reg.get("do_thing").input_schema["properties"]
+        assert props["idempotency_key"] == {"type": "string"}
+        assert props["tags"]["type"] == ["array", "null"]
